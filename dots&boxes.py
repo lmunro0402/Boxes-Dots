@@ -2,11 +2,12 @@
 #
 # Author: Luke Munro
 
+import player
+
 class Grid:
 	def __init__(self, dim):
 		""" Only square games allowed"""
 		self.dim = dim 
-		self.player = 0
 		self.usedBoxes = 0
 		self.moves = []
 		for i in range(self.dim):
@@ -21,9 +22,8 @@ class Grid:
 
 	def move(self, row, index):
 		self.moves[row][index] = 1
-		self.player += 1
 
-#	def validMove(self, row, index): #uneeded 
+#	def validMove(self, row, index): #uneeded like protection
 
 # ---------------------------- Scoring -----------------------------------
 
@@ -31,12 +31,12 @@ class Grid:
 		return (self.dim**2) != self.usedBoxes
 
 	def update_scores(self, player):
-		count = sum(self.check_boxs)
+		count = sum(self.check_boxes())
 		if count != self.usedBoxes:
 			player.plusOne()
 			self.usedBoxes = count
 
-	def check_boxs(self, player):
+	def get_boxes(self):
 		boxes = []
 		box_scores = []
 		for i in range(0, self.dim*2, 2):
@@ -45,6 +45,10 @@ class Grid:
 			# Each box
 				boxes.append([self.moves[i][j], self.moves[i+1][j], \
 				self.moves[i+1][j+1], self.moves[i+2][j]])
+		return boxes
+
+	def check_boxes(self):
+		boxes = self.get_boxes()
 		box_scores = [sum(x)//4 for x in boxes]
 		return box_scores
 
@@ -81,21 +85,59 @@ class Grid:
 					buffer.append(hLine)
 				else: buffer.append(hEmpty)
 			buffer.append("+\n")
-		return "".join(buffer)
 
+		print "".join(buffer) 
 
+# -------------------------- Data methods for AI ---------------------------
+	
+	def get_data(self):
+		boxes = self.get_boxes()
+		box_scores = self.check_boxes()
+
+# -------------------------- Player Class ----------------------------------
+class Player:
+	def __init__(self, name):
+		self.name = name
+		self.score = 0
+
+	def getName(self):
+		return self.name
+
+	def plusOne(self):
+		self.score += 1
+
+	def getScore(self):
+ 		return self.score
 
 def main():
-	g = Grid(2)
-	print g.game_status()
+	dim = int(input("Size of grid: "))
+	g = Grid(dim)
+	g.display_game()
+	player1 = Player("Luke")
+	player2 = Player("AI")
+	players = [player1, player2]
+	print player1.getName() + " starts\n"
+	print "Game status - " + str(g.game_status()) + "\n"
+	turns = 0
 	while g.game_status():
+		cPlayer = players[turns%2]
+		check = cPlayer.getScore()
+		print cPlayer.getName() + " your move"
 		line = raw_input("Input 2 numbers: Row then Column (ex. first vertical line would be 10): ")
 		line = [int(x) for x in line]
-		
-	g.move(0, 1)
-	print g.display_moves()
-	print g.display_game()
-	print g.check_boxs("me")
+		g.turn(line[0], line[1], cPlayer)
+		g.display_game()
+		print cPlayer.getName() + " your score is " + str(cPlayer.getScore())
+		if check == cPlayer.getScore():
+			turns += 1
+	if player1.getScore() == player2.getScore():
+		print "Tie"
+	elif player1.getScore() > player2.getScore():
+		print "Winner is " + player1.getName()
+	else:
+		print "Winner is " + player2.getName()
+
+
 
 if __name__ == "__main__":
 	main()

@@ -6,6 +6,7 @@ class Grid:
 	def __init__(self, dim):
 		""" Only square games allowed"""
 		self.dim = dim 
+		self.player = 0
 		self.moves = []
 		self.moves.append([0]*dim)
 		self.moves.append([0]*(dim+1))
@@ -15,11 +16,16 @@ class Grid:
 	def move(self, row, index):
 		self.moves[row][index] = 1
 
+	def check_boxs(self, player):
+		for i in range(dim):
+			for j in range(dim):
+				count = self.moves[i][j] + [i+1]
+
 	def display_moves(self):
 		return self.moves
 
 	def display_game(self):
-		buffer = [] #buffer?
+		buffer = [] #buffer? what is this
 		hLine = "+---"
 		hEmpty = "+   "
 		vLine = "|  "
@@ -41,7 +47,6 @@ class Grid:
 			buffer.append("\n")
 
 			# Vertical passes
-
 			for j in range(self.dim):
 				if self.moves[i+1][j] == 1:
 					buffer.append(hLine)

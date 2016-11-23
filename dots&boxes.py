@@ -8,6 +8,7 @@ class Grid:
 	def __init__(self, dim):
 		""" Only square games allowed"""
 		self.dim = dim 
+		assert self.dim < 9, "Less than 10 please"
 		self.usedBoxes = 0
 		self.moves = []
 		for i in range(self.dim):
@@ -23,7 +24,14 @@ class Grid:
 	def move(self, row, index):
 		self.moves[row][index] = 1
 
-#	def validMove(self, row, index): #uneeded like protection
+#------------------------------ Checks ----------------------------------
+
+# Figure out errors for this 
+	def valid_move(self, row, index): 
+		if self.moves[row][index] == 1 or (row%2 == 0 and index > self.dim) or\
+		 row%2 == 1 and index > self.dim+1 or row > self.dim*2+1: 
+			return False
+		return True
 
 # ---------------------------- Scoring -----------------------------------
 
@@ -90,9 +98,12 @@ class Grid:
 
 # -------------------------- Data methods for AI ---------------------------
 	
-	def get_data(self):
+	def get_data(self, players):
 		boxes = self.get_boxes()
-		box_scores = self.check_boxes()
+# Experiement with what data to give the network
+#		box_scores = self.check_boxes()
+		scores = [players[0].getScore(), players[1].getScore()]
+		return boxes + scores
 
 # -------------------------- Player Class ----------------------------------
 class Player:
@@ -102,6 +113,11 @@ class Player:
 
 	def getName(self):
 		return self.name
+
+	def getMove(self):
+		move = raw_input("Input 2 numbers: Row then Column (ex. first vertical line would be 10): ")
+		move = [int(x) for x in move]
+		return move
 
 	def plusOne(self):
 		self.score += 1
@@ -123,9 +139,8 @@ def main():
 		cPlayer = players[turns%2]
 		check = cPlayer.getScore()
 		print cPlayer.getName() + " your move"
-		line = raw_input("Input 2 numbers: Row then Column (ex. first vertical line would be 10): ")
-		line = [int(x) for x in line]
-		g.turn(line[0], line[1], cPlayer)
+		move = cPlayer.getMove()
+		g.turn(move[0], move[1], cPlayer)
 		g.display_game()
 		print cPlayer.getName() + " your score is " + str(cPlayer.getScore())
 		if check == cPlayer.getScore():

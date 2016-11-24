@@ -19,8 +19,9 @@ class Grid:
 		if self.valid_move(row, index):
 			self.move(row, index)
 			self.update_scores(player)
-		else:
-			print "Bad move"
+		else:   
+			# Recurse till valid move
+			print "Invalid move"
 			move = player.getMove()
 			self.turn(move[0], move[1], player)
 
@@ -30,10 +31,10 @@ class Grid:
 
 #------------------------------ Checks ----------------------------------
 
-# Figure out errors for this 
+# Figure out errors for this - works now but ehh
 	def valid_move(self, row, index): 
-		if (row%2 == 0 and index > self.dim) or\
-		 row%2 == 1 and index > self.dim+1 or row > self.dim*2+1: 
+		if (row%2 == 0 and index > self.dim-1) or\
+		 (row%2 == 1 and index > self.dim) or (row > self.dim*2): 
 			return False
 		elif self.moves[row][index] == 1:
 			return False
@@ -105,11 +106,12 @@ class Grid:
 # -------------------------- Data methods for AI ---------------------------
 	
 	def get_data(self, players):
-		boxes = self.get_boxes()
+#		boxes = self.get_boxes()
 # Experiement with what data to give the network
 #		box_scores = self.check_boxes()
+		moves = [i for x in self.moves for i in x]
 		scores = [players[0].getScore(), players[1].getScore()]
-		return boxes + scores
+		return str(moves + scores)
 
 # -------------------------- Player Class ----------------------------------
 class Player:
@@ -142,6 +144,8 @@ def main():
 	print "Game status - " + str(g.game_status()) + "\n"
 	turns = 0
 	while g.game_status():
+		with open('data', 'w') as data:
+			data.write(g.get_data(players))
 		cPlayer = players[turns%2]
 		check = cPlayer.getScore()
 		print cPlayer.getName() + " your move"

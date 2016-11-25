@@ -3,12 +3,14 @@
 # Author: Luke Munro
 
 import NN
+import time
+# -----------------------------------ADD MOVE DIAGRAM -----------------------
 
 class Grid:
 	def __init__(self, dim):
 		""" Only square games allowed"""
 		self.dim = dim 
-		assert self.dim < 10, "Less than 10 please"
+		assert self.dim < 5, "Less than 5 please" # CHANGE COMMAND INPUT FOR BIGGER GAMES
 		self.usedBoxes = 0
 		self.moves = []
 		for i in range(self.dim):
@@ -46,7 +48,7 @@ class Grid:
 	def game_status(self):
 		return (self.dim**2) != self.usedBoxes
 
-	def update_scores(self, player):
+	def update_scores(self, player): # THIS IS BUGGED sometimes need +2
 		count = sum(self.check_boxes())
 		if count != self.usedBoxes:
 			player.plusOne()
@@ -107,9 +109,6 @@ class Grid:
 # -------------------------- Data methods for AI ---------------------------
 	
 	def get_data(self, players):
-#		boxes = self.get_boxes()
-# Experiement with what data to give the network
-#		box_scores = self.check_boxes()
 		moves = [i for x in self.moves for i in x]
 		scores = [players[0].getScore(), players[1].getScore()]
 		return str(moves + scores)
@@ -138,9 +137,10 @@ def main():
 	dim = int(input("Size of grid: "))
 	g = Grid(dim)
 	g.display_game()
-	name = raw_input("Enter name: ")
+	name = raw_input("Player 1 enter name: ")
 	player1 = Player(name)
-	player2 = Player("AI")
+	name = raw_input("Player 2 enter name: ")
+	player2 = Player(name)
 	players = [player1, player2]
 	print player1.getName() + " starts\n"
 	print "Game status - " + str(g.game_status()) + "\n"
@@ -153,7 +153,7 @@ def main():
 		print cPlayer.getName() + " your move"
 
 		if cPlayer.getName() == "AI":
-			NN.main()
+			NN.main(3)
 			with open('move', 'r') as f:
 				move = [int(x) for x in list(f.read())]
 				print move
@@ -162,6 +162,7 @@ def main():
 		g.turn(move[0], move[1], cPlayer)
 		g.display_game()
 		print cPlayer.getName() + " your score is " + str(cPlayer.getScore())
+		time.sleep(1)
 		if check == cPlayer.getScore():
 			turns += 1
 

@@ -2,6 +2,7 @@
 #
 # Author: Luke Munro
 
+import NN
 
 class Grid:
 	def __init__(self, dim):
@@ -137,7 +138,8 @@ def main():
 	dim = int(input("Size of grid: "))
 	g = Grid(dim)
 	g.display_game()
-	player1 = Player("Luke")
+	name = raw_input("Enter name: ")
+	player1 = Player(name)
 	player2 = Player("AI")
 	players = [player1, player2]
 	print player1.getName() + " starts\n"
@@ -149,12 +151,22 @@ def main():
 		cPlayer = players[turns%2]
 		check = cPlayer.getScore()
 		print cPlayer.getName() + " your move"
-		move = cPlayer.getMove()
+
+		if cPlayer.getName() == "AI":
+			NN.main()
+			with open('move', 'r') as f:
+				move = [int(x) for x in list(f.read())]
+				print move
+		else:
+			move = cPlayer.getMove()
 		g.turn(move[0], move[1], cPlayer)
 		g.display_game()
 		print cPlayer.getName() + " your score is " + str(cPlayer.getScore())
 		if check == cPlayer.getScore():
 			turns += 1
+
+	with open('data', 'w') as data:
+		data.write(g.get_data(players))
 	if player1.getScore() == player2.getScore():
 		print "Tie"
 	elif player1.getScore() > player2.getScore():

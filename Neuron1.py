@@ -3,7 +3,7 @@
 # Author: Luke Munro
 
 import numpy as np
-import funcs
+
 
 class Neuron:
     """Neuron for logistic regression. Given layer, index in layer, and size of data 

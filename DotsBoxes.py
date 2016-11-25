@@ -18,6 +18,9 @@ class Grid:
 			self.moves.append([0]*(dim+1))
 		self.moves.append([0]*dim)
 
+	def getDim(self):
+		return self.dim
+
 	def turn(self, row, index, player):
 		if self.valid_move(row, index):
 			self.move(row, index)
@@ -27,6 +30,7 @@ class Grid:
 			print "Invalid move"
 			move = player.getMove()
 			self.turn(move[0], move[1], player)
+
 
 
 	def move(self, row, index):
@@ -144,16 +148,16 @@ def main():
 	players = [player1, player2]
 	print player1.getName() + " starts\n"
 	print "Game status - " + str(g.game_status()) + "\n"
+	with open('data', 'w') as data:
+		data.write(g.get_data(players))	
 	turns = 0
 	while g.game_status():
-		with open('data', 'w') as data:
-			data.write(g.get_data(players))
 		cPlayer = players[turns%2]
 		check = cPlayer.getScore()
 		print cPlayer.getName() + " your move"
 
 		if cPlayer.getName() == "AI":
-			NN.main(3)
+			NN.main(g.getDim())
 			with open('move', 'r') as f:
 				move = [int(x) for x in list(f.read())]
 				print move
@@ -165,9 +169,12 @@ def main():
 		time.sleep(1)
 		if check == cPlayer.getScore():
 			turns += 1
+		with open('data', 'w') as data:
+			data.write(g.get_data(players))
 
-	with open('data', 'w') as data:
-		data.write(g.get_data(players))
+	
+	print player1.getName() + " score is " + str(player1.getScore())
+	print player2.getName() + " score is " + str(player2.getScore())
 	if player1.getScore() == player2.getScore():
 		print "Tie"
 	elif player1.getScore() > player2.getScore():

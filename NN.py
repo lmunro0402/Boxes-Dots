@@ -10,13 +10,13 @@ class Net:
 	def __init__(self, nodes, possibleMoves):
 # ------ One Hidden Layer ------
 # Nodes = # nodes in layer | sizeX = # data points | ouptuts = # possible ouptuts
-		self.Net = []
+		self.hidden = []
 		self.nodes = nodes
 		self.sizeX = possibleMoves + 3 # For bias and player scores 
 		self.outs = []
 		self.data = []
 		for i in range(nodes):
-			self.Net.append(Neuron(1, i, self.sizeX, i))
+			self.hidden.append(Neuron(1, i, self.sizeX, i))
 		for i in range(possibleMoves): 
 			self.outs.append(Neuron(2, i, self.nodes+1, i))  # +1 for bias
 
@@ -24,11 +24,26 @@ class Net:
 	def getNodes(self, layer):
 # ------- will need to change for more layers ----------------------
 		if layer == 1:
-			return self.Net
+			return self.hidden
 		elif layer == 2:
 			return self.outs
 		else:
 			print "Fuck me if this gets printed"
+
+	def getWeights(self, layer):
+		layer1 = np.zeros(shape=(len(self.hidden), self.sizeX))
+		layer2 = np.zeros(shape=(len(self.outs), len(self.hidden)+1)) # outs has weight for bias
+		for i, node in enumerate(self.hidden):
+			layer1[i] = node.getW()
+		for i, node in enumerate(self.outs):
+			layer2[i] = node.getW()
+# ---------------------- Fix this when bored ------------------------------
+		if layer == 1:
+			return str(layer1.tolist())
+		else:
+			return str(layer2.tolist())
+
+
 
 
 def getData():
@@ -130,10 +145,15 @@ def main(gridSize):
 	# print makeCommands(gridSize)
 	nextMoves = formatMoves(onlyLegal(moves, justMoves), makeCommands(gridSize))
 	# print nextMoves
-	# print nextMoves[0]
+	print "Next Move - " + str(nextMoves[0])
 	with open('move', 'w') as f:
 		f.write(nextMoves[0])
+	with open('weights1', 'w') as f:
+		f.write(net.getWeights(1))
+	with open('weights2', 'w') as f:
+		f.write(net.getWeights(2))
+
 
 
 if __name__ == "__main__":
-	main(3)
+	main(2)

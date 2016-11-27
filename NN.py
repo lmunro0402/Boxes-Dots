@@ -4,156 +4,142 @@
 from sigNeuron import *
 import numpy as np
 
+
 """Neural net class for systems with ONE hidden layer, 
 				eventually will work generically for more. """
 class Net:
-	def __init__(self, nodes, possibleMoves):
+	def __init__(self, nodes, gridSize):
 # ------ One Hidden Layer ------
 # Nodes = # nodes in layer | sizeX = # data points | ouptuts = # possible ouptuts
+# ----------- All sizes do NOT CONTAIN BIAS UNITS -----------
+		self.gridSize = gridSize
+		self.sizeX = 2*(gridSize*(gridSize+1))+2 
+# ------ Hidden layer variables -------------------
 		self.hidden = []
-		self.nodes = nodes
-		self.sizeX = possibleMoves + 3 # For bias and player scores 
+		self.sizeH = nodes
+#-------- Output variables ----------
 		self.outs = []
-		self.data = []
+		self.sizeO = self.sizeX-2# For player scores
 		for i in range(nodes):
-			self.hidden.append(Neuron(1, i, self.sizeX, i))
-		for i in range(possibleMoves): 
-			self.outs.append(Neuron(2, i, self.nodes+1, i))  # +1 for bias
+			self.hidden.append(Neuron(1, i, self.sizeX+1, i))
+		for i in range(self.sizeO): 
+			self.outs.append(Neuron(2, i, self.sizeH+1, i))  # +1 for bias
+		self.layers = [self.hidden, self.outs]
 
 
-	def getNodes(self, layer):
-# ------- will need to change for more layers ----------------------
-		if layer == 1:
-			return self.hidden
-		elif layer == 2:
-			return self.outs
-		else:
-			print "Fuck me if this gets printed"
-
-	def getWeights(self, layer):
-		layer1 = np.zeros(shape=(len(self.hidden), self.sizeX))
-		layer2 = np.zeros(shape=(len(self.outs), len(self.hidden)+1)) # outs has weight for bias
+	def getWeights(self): 
+		layer1 = np.zeros(shape=(self.sizeH, self.sizeX+1))
+		layer2 = np.zeros(shape=(self.sizeO, self.sizeH+1))
 		for i, node in enumerate(self.hidden):
 			layer1[i] = node.getW()
 		for i, node in enumerate(self.outs):
 			layer2[i] = node.getW()
-# ---------------------- Fix this when bored ------------------------------
-		if layer == 1:
-			return str(layer1.tolist())
-		else:
-			return str(layer2.tolist())
+		layers = [layer1, layer2]
+		return layers
+
+	def writeWeights(self):
+		layerWeights = self.getWeights()
+		layerWeights[0].tofile('weights1')
+		layerWeights[1].tofile('weights2')
+
+
+	def loadWeights(self):
+		weights1 = np.fromfile('weights1').reshape(self.sizeH, self.sizeX+1)
+		weights2 = np.fromfile('weights2').reshape(self.sizeO, self.sizeH+1)
+		for i, weight in enumerate(weights1):
+			self.hidden[i].assignW(weight)
+		for i, weight in enumerate(weights2):
+			self.outs[i].assignW(weight)
+
+	def getMove(self):
+		a = []
+		a0 = getData()
+		justMoves = list(a0[:len(a0)-2])
+		a0 = addBias(a0)
+		a.append(a0)
+		a1 = forwardOne(self.layers[0], a[0])
+		a1 = addBias(a1)
+		a.append(a1)
+		a2 = forwardOne(self.layers[1], a[1])
+		a.append(a2)
+		moves = findMoves(a[2])
+		legalMoves = onlyLegal(moves, justMoves)
+		nextMoves = formatMoves(legalMoves, makeCommands(self.gridSize)))
+		return nextMoves[0]
 
 
 
+
+
+# -------------------------- Computations -------------------------------
+
+def sigmoid(z):
+    return 1/(1+np.exp(-z))
+
+def forwardOne(Nodes, X):
+	w = np.zeros(shape=(np.size(Nodes), np.size(X)))
+	for i, node in enumerate(Nodes):
+		w[i] = node.getW()
+	z = np.dot(w, X).reshape(np.size(Nodes), 1)
+	return sigmoid(z)
+
+
+# ---------------------------- Utility ----------------------------------
 
 def getData():
 	with open('data', 'r') as d:
 		data = d.read()
 	data = [[int(data[x])] for x in range(len(data)) if x%3==1]
 	data = np.array(data)
-# ------------ Add bias ----------------- maybe? yes
 	return data 
 		
 def addBias(matrix):
-# --------------- For hidden layer not a neuron just a 1 ----------------------------
 	size = matrix.shape
-	matrix = np.insert(matrix, 0, 1)
+	matrix = np.insert(matrix, 0, 1, axis=0)
 	return matrix
 
 
-def forwardOne(Nodes, X):
-	w = np.zeros(shape=(np.size(Nodes), np.size(X)))
-#	print w.shape
-	for i, node in enumerate(Nodes):
-#		print node.getW()
-		w[i] = node.getW()
-	z = np.dot(w, X)
-	return sigmoid(z)
+
+# ------------------ Translating to BoxesDotes ----------------------
 
 
-def findMoves(probs): # Returns ranking of ALL moves
+def findMoves(probs): # CONDENSE fix for same prob
 	moves = []
-	probs = list(probs)
+	probs = probs.tolist()
 	tProbs = list(probs)
 	for i in range(len(probs)):
 		high = max(tProbs)
 		index = probs.index(high)
+		probs[index] = -1 # working fix for same probs bug
 		moves.append(index)
 		tProbs.remove(high)
 	return moves
 
 def makeCommands(gridDim):
-	l = []
-	a = gridDim # easier
+	moveCommands = []
 	for i in range(gridDim*2+1):
 		if i%2==0:
 			for x in range(gridDim):
-				l.append(str(i)+str(x))
+				moveCommands.append(str(i)+str(x))
 		else:
 			for x in range(gridDim+1):
-				l.append(str(i)+str(x))
-	return l
+				moveCommands.append(str(i)+str(x))
+	return moveCommands
 
-def formatMoves(legalOrderMoves, commands): #passed in [[move indices], [order]]
+def formatMoves(moveOrder, commands): # CONDENSE
 	fmatMoves = []
-	moves = legalOrderMoves[0]
-	order = legalOrderMoves[1]
-	orderRef = list(order)
-	for i, move in enumerate(moves):
-		moves[i] = commands[move]
-#	print moves
-	for i, val in enumerate(orderRef):
-		next = min(order)
-		indexNext = order.index(next)
-		nMove = moves[indexNext]
-#		print next, indexNext, nMove
-		fmatMoves.append(nMove)
-		order.remove(min(order))
-#		print order
+	for i, move in enumerate(moveOrder):
+		fmatMoves.append(commands[move])
 	return fmatMoves
 
 
-def onlyLegal(moves, data): # outputs 2D list of [[move indices], [order]]
+def onlyLegal(moves, justMoves): # CONDENSE
 	legalMoves = []
-	for i in range(len(data)):
-		if data[i] == 0:
+	for i in range(len(justMoves)):
+		if justMoves[i] == 0:
 			legalMoves.append(i)
-	return [legalMoves, [moves[i] for i in legalMoves]]
+	moveOrder = filter(lambda x: x in legalMoves, moves)
+	return moveOrder
 
 
 	
-
-
-# -------------------------- Cool Stuff -------------------------------
-
-
-def main(gridSize):
-	data = getData()
-	justMoves = list(data[:len(data)-2])
-#	print len(justMoves), len(data)
-	a = []
-	a.append(addBias(data))
-	net = Net(20, len(justMoves))
-# ------------- Eventually condense this into just forwardPropagate ------------------
-	a.append(forwardOne(net.getNodes(1), a[0]))
-	a[1] = addBias(a[1])
-	a.append(forwardOne(net.getNodes(2), a[1]))
-	moves = findMoves(a[2])
-	# move = moves.index(min(moves))
-	# print [int(x) for x in justMoves]
-	# print onlyLegal(moves, justMoves)
-	# print makeCommands(gridSize)
-	nextMoves = formatMoves(onlyLegal(moves, justMoves), makeCommands(gridSize))
-	# print nextMoves
-	print "Next Move - " + str(nextMoves[0])
-	with open('move', 'w') as f:
-		f.write(nextMoves[0])
-	with open('weights1', 'w') as f:
-		f.write(net.getWeights(1))
-	with open('weights2', 'w') as f:
-		f.write(net.getWeights(2))
-
-
-
-if __name__ == "__main__":
-	main(2)

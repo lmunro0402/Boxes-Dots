@@ -153,13 +153,13 @@ def main():
 	# dim = int(input("Size of grid: "))
 	dim = 2
 	train = int(input("How many games: "))
-	aI2 = NN.Net(10, dim)
-	aI = NN.Net(10, dim)
-	# aI.writeZeros()
+	aI2 = NN.Net(20, dim)
+	aI = NN.Net(20, dim)
+	# aI.writeWeights()
 	aI.loadWeights()
-	print "------ aI2 -------\n"
-	aI2w = aI2.getWeights()
-	print aI2w[1]
+	# print "------ aI2 -------\n"
+	# aI2w = aI2.getWeights()
+	# print aI2w[1]
 	print "------ aI -------\n"
 	aIw = aI.getWeights()
 	print aIw[1]
@@ -175,33 +175,34 @@ def main():
 		# if  val == 1:
 		# 	aI.loadWeights()
 		# print player1.getName() + " starts\n"
-		# g.display_game()
+		g.display_game()
 		turns = 0
 		while g.game_status():
+			time.sleep(1)
 			cPlayer = players[turns%2]
 			check = cPlayer.getScore()
-			# print cPlayer.getName() + " your move"
-			if 1 == 1:
-				print "AI"
+			print cPlayer.getName() + " your move"
+			if cPlayer.getName() == "AI":# and 1 == 0:
 				move = [int(x) for x in aI.getMove()] #change to fully internal no temp file
 			else:
-				move = players[1].getMove()
-				train = [[0, 0], [0, 0, 0], [0, 0], [0, 0, 0], [0, 0]]
-				train[move[0]][move[1]] = 1
-				train_data = [i for x in train for i in x]
-				# print g.moves
-				# print train_data
-				train_data = np.asarray(train_data).reshape(12, 1)
-				# print train_data
-				aI.train(-0.1, train_data)
-			# print cPlayer.getName() + " move - " + str(move)
+				move = [int(x) for x in aI2.getMove()] #player2.getMove()
+				# train = [[0, 0], [0, 0, 0], [0, 0], [0, 0, 0], [0, 0]]
+				# train[move[0]][move[1]] = 1
+				# train_data = [int(i) for x in train for i in x]
+				# # print g.moves
+				# # print train_data
+				# train_data = np.asarray(train_data).reshape(12, 1)
+				# # print train_data
+				# aI.train(-0.1, train_data)
+			print cPlayer.getName() + " move - " + str(move)
 			g.turn(move[0], move[1], cPlayer)
 			g.display_game()
-			# print cPlayer.getName() + " your score is " + str(cPlayer.getScore())
+			print cPlayer.getName() + " your score is " + str(cPlayer.getScore())
 			if check == cPlayer.getScore():
 				turns += 1
 			with open('data', 'w') as data:
 				data.write(g.get_data())
+			aI.writeWeights()
 		# print "---next---"
 		# print player1.getName() + " score is " + str(player1.getScore())
 		# print player2.getName() + " score is " + str(player2.getScore())
@@ -214,11 +215,10 @@ def main():
 		# aI.writeWeights()
 		# print "------ aI2 -------\n"
 		# print aI2.getWeights()
-	aI.loadWeights()
-	print "------ aI2 -------\n"
-	print aI2w[1]
+	# print "------ aI2 -------\n"
+	# print aI2w[1]
 	print "------ aI -------\n"
-	print aI.getWeights()[1]
+	print aI.getWeights()[0]
 
 
 if __name__ == "__main__":

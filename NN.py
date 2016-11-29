@@ -100,7 +100,8 @@ class Net:
 		return a3
 
 	def train(self, alpha, y):
-		self.loadWeights()
+# ----- Leave steps split for easier comprehension ------
+		print self.getWeights()[1]
 		a = []
 		z = []
 		a1 = getData()
@@ -116,34 +117,23 @@ class Net:
 		z.append(z3)
 		a3 = sigmoid(z3)
 		a.append(a3)
-		# print a3
-		# print y
-		print costLog(y, a3)
-		delta3 = (a3 - y) #* sigGradient(z3)
-		# print "-------------------------------------------------------------"
-		# print a3
-		# print y
-		# print delta3
-		# print "here"
-	# 	FOR NOW WRITE AND READ WEIGHTS EVERY TIME - INTERALIZE THIS PER GAME LATER
-	# 	THINK ABOUT CHANGING LAYERS FROM PASSING NEURONS TO WEIGHTSs
+		print costMeanSquared(y, a3)
+		delta3 = (a3 - y)  * sigGradient(z3)
 		layerWeights = self.getWeights()
 		w1 = layerWeights[0]
 		w2 = layerWeights[1]
 		w1NoBias = rmBias(w1)
-		# print w1NoBias, w1NoBias.shape
-		# print delta3, delta3.shape
 		delta2 = np.dot(w1NoBias, delta3) * sigGradient(z2)
-		# print a2
-		Grad1 = delta2 * a1.transpose() # n x 1 * 1 x m
+		Grad1 = delta2 * a1.transpose()
 		Grad2 = delta3 * a2.transpose()
-		# print Grad2[0]
-		# print alpha * Grad2[0]
-		# print w1
 		w1 += alpha * Grad1
 		w2 += alpha * Grad2
-		# print w2[0]
-		self.updateWeights([w1, w2])
+		for i, weight in enumerate(w1):
+			self.hidden[i].assignW(weight)
+		for i, weight in enumerate(w2):
+			self.outs[i].assignW(weight)
+		print self.getWeights()[1]
+
 
 
 # -------------------------- Computations -------------------------------
@@ -172,10 +162,6 @@ def sigGradient(z):
 def reg(weights, Lambda): # Bias must be removed from weights
 	w1= rmBias(weights[0])
 	w2 = rmBias(weights[1])
-	# print weights[0], weights[0].shape
-	# print w1, w1.shape
-	# print weights[1], weights[1].shape
-	# print w2, w2.shape
 	reg = Lambda/2.0 * (sum(sum(w1**2)) + sum(sum(w2**2)))
 	return reg
 

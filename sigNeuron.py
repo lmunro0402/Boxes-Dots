@@ -10,7 +10,8 @@ class Neuron:
     """Neuron for logistic regression. Given layer, index in layer, and size of data 
     it outputs a single value."""
     def __init__(self, layer, index, sizeX, seed):
-        np.random.seed(int(time.time())+seed//4)
+        np.random.seed(seed*2)
+        # time.sleep(0.1)
         self.layer = layer
         self.index = index
         # Initialize weight randomly with mean 0

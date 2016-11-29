@@ -13,13 +13,13 @@ class Net:
 # Nodes = # nodes in layer | sizeX = # data points | ouptuts = # possible ouptuts
 # ----------- All sizes do NOT CONTAIN BIAS UNITS -----------
 		self.gridSize = gridSize
-		self.sizeX = 2*(gridSize*(gridSize+1))+2 
+		self.sizeX = 2*(gridSize*(gridSize+1)) #+2 
 # ------ Hidden layer variables -------------------
 		self.hidden = []
 		self.sizeH = nodes
 #-------- Output variables ----------
 		self.outs = []
-		self.sizeO = self.sizeX-2# For player scores
+		self.sizeO = self.sizeX #-2# For player scores
 		for i in range(nodes):
 			self.hidden.append(Neuron(1, i, self.sizeX+1, i))
 		for i in range(self.sizeO): 
@@ -34,8 +34,8 @@ class Net:
 			layer1[i] = node.getW()
 		for i, node in enumerate(self.outs):
 			layer2[i] = node.getW()
-		layers = [layer1, layer2]
-		return layers
+		weights = [layer1, layer2]
+		return weights
 
 	def writeWeights(self):
 		layerWeights = self.getWeights()
@@ -46,42 +46,145 @@ class Net:
 	def loadWeights(self):
 		weights1 = np.fromfile('weights1').reshape(self.sizeH, self.sizeX+1)
 		weights2 = np.fromfile('weights2').reshape(self.sizeO, self.sizeH+1)
+		# print "---- read ----\n" + str(weights2)
 		for i, weight in enumerate(weights1):
 			self.hidden[i].assignW(weight)
 		for i, weight in enumerate(weights2):
 			self.outs[i].assignW(weight)
 
+	def updateWeights(self, layerWeights):
+		# print "---- written ----\n" + str(layerWeights[1])
+		layerWeights[0].tofile('weights1')
+		layerWeights[1].tofile('weights2')
+		# self.loadWeights()
+
+
 	def getMove(self):
+		# self.loadWeights()
 		a = []
-		a0 = getData()
-		justMoves = list(a0[:len(a0)-2])
-		a0 = addBias(a0)
-		a.append(a0)
-		a1 = forwardOne(self.layers[0], a[0])
+		z = []
+		a1 = getData()
+		justMoves = a1 #list(a0[:len(a0)-2])
 		a1 = addBias(a1)
 		a.append(a1)
-		a2 = forwardOne(self.layers[1], a[1])
+		z2 = computeZ(self.layers[0], a1)
+		z.append(z2)
+		a2 = sigmoid(z2)
+		a2 = addBias(a2)
 		a.append(a2)
-		moves = findMoves(a[2])
+		z3 = computeZ(self.layers[1], a2)
+		z.append(z3)
+		a3 = sigmoid(z3)
+		a.append(a3)
+		# print a3
+		moves = findMoves(a3)
 		legalMoves = onlyLegal(moves, justMoves)
-		nextMoves = formatMoves(legalMoves, makeCommands(self.gridSize)))
+		nextMoves = formatMoves(legalMoves, makeCommands(self.gridSize))
 		return nextMoves[0]
 
+	def getA(self):
+		a = []
+		z = []
+		a1 = getData()
+		justMoves = a1 #list(a0[:len(a0)-2])
+		a1 = addBias(a1)
+		a.append(a1)
+		z2 = computeZ(self.layers[0], a1)
+		z.append(z2)
+		a2 = sigmoid(z2)
+		a2 = addBias(a2)
+		a.append(a2)
+		z3 = computeZ(self.layers[1], a2)
+		z.append(z3)
+		a3 = sigmoid(z3)
+		return a3
 
-
+	def train(self, alpha, y):
+		self.loadWeights()
+		a = []
+		z = []
+		a1 = getData()
+		justMoves = a1 
+		a1 = addBias(a1)
+		a.append(a1)
+		z2 = computeZ(self.layers[0], a1)
+		z.append(z2)
+		a2 = sigmoid(z2)
+		a2 = addBias(a2)
+		a.append(a2)
+		z3 = computeZ(self.layers[1], a2)
+		z.append(z3)
+		a3 = sigmoid(z3)
+		a.append(a3)
+		# print a3
+		# print y
+		print costLog(y, a3)
+		delta3 = (a3 - y) #* sigGradient(z3)
+		# print "-------------------------------------------------------------"
+		# print a3
+		# print y
+		# print delta3
+		# print "here"
+	# 	FOR NOW WRITE AND READ WEIGHTS EVERY TIME - INTERALIZE THIS PER GAME LATER
+	# 	THINK ABOUT CHANGING LAYERS FROM PASSING NEURONS TO WEIGHTSs
+		layerWeights = self.getWeights()
+		w1 = layerWeights[0]
+		w2 = layerWeights[1]
+		w1NoBias = rmBias(w1)
+		# print w1NoBias, w1NoBias.shape
+		# print delta3, delta3.shape
+		delta2 = np.dot(w1NoBias, delta3) * sigGradient(z2)
+		# print a2
+		Grad1 = delta2 * a1.transpose() # n x 1 * 1 x m
+		Grad2 = delta3 * a2.transpose()
+		# print Grad2[0]
+		# print alpha * Grad2[0]
+		# print w1
+		w1 += alpha * Grad1
+		w2 += alpha * Grad2
+		# print w2[0]
+		self.updateWeights([w1, w2])
 
 
 # -------------------------- Computations -------------------------------
 
-def sigmoid(z):
-    return 1/(1+np.exp(-z))
-
-def forwardOne(Nodes, X):
+def computeZ(Nodes, X):
 	w = np.zeros(shape=(np.size(Nodes), np.size(X)))
 	for i, node in enumerate(Nodes):
 		w[i] = node.getW()
 	z = np.dot(w, X).reshape(np.size(Nodes), 1)
-	return sigmoid(z)
+	return z
+
+def sigmoid(z):
+	return 1/(1+np.exp(-z))
+
+def costLog(y, a):
+	cost = -y * np.log10(a) - (1 - y) * np.log10(1 - a)
+	return sum(cost)
+
+def costMeanSquared(y, a):
+	cost = ((a - y)**2)/2.0
+	return sum(cost)
+
+def sigGradient(z):
+	return sigmoid(z) * (1 - sigmoid(z))
+
+def reg(weights, Lambda): # Bias must be removed from weights
+	w1= rmBias(weights[0])
+	w2 = rmBias(weights[1])
+	# print weights[0], weights[0].shape
+	# print w1, w1.shape
+	# print weights[1], weights[1].shape
+	# print w2, w2.shape
+	reg = Lambda/2.0 * (sum(sum(w1**2)) + sum(sum(w2**2)))
+	return reg
+
+def estimateGradlog(y, a, weights, epsilon): # DO THIS LATER
+	for i in range(weights):
+		for i in range(weights[i]):
+			continue
+	return None
+	# return (costLog(y, a+epsilon) - costLog(y, a-epsilon))
 
 
 # ---------------------------- Utility ----------------------------------
@@ -93,12 +196,12 @@ def getData():
 	data = np.array(data)
 	return data 
 		
-def addBias(matrix):
-	size = matrix.shape
-	matrix = np.insert(matrix, 0, 1, axis=0)
-	return matrix
+def addBias(aLayer): # Adds 1 to vertical vector matrix
+	return np.insert(aLayer, 0, 1, axis=0)
 
 
+def rmBias(weightMatrix): # removes bias weight from all nodes 
+	return np.delete(weightMatrix, 0, axis=1)
 
 # ------------------ Translating to BoxesDotes ----------------------
 
@@ -142,4 +245,85 @@ def onlyLegal(moves, justMoves): # CONDENSE
 	return moveOrder
 
 
+
+# --------------- for testing ----------------------------------
+def main():
+	y = np.zeros(shape=(12, 1))
+	t = np.zeros(shape=(12, 1))+0.001
 	
+	#y = addBias(y)
+	x= [[ 0.44841772], [ 0.44841772], [ 0.44841772], [ 0.44841772], [ 0.3939411 ], [ 0.3939411 ], [ 0.3939411 ], [ 0.3939411 ], [ 0.43916391], [ 0.43916391], [ 0.43916391], [ 0.43916391]]
+	# print y, y.shape
+	a4 = np.zeros(shape=(12, 1))
+	for i in range(12):
+		a4[i] = x[i]
+	aI = Net(10, 2)
+	aI.loadWeights()
+	a = []
+	z = []
+	a1 = getData()
+	justMoves = a1 #list(a0[:len(a0)-2])
+	a1 = addBias(a1)
+	print a1, a1.shape
+	a.append(a1)
+	z2 = computeZ(aI.layers[0], a1)
+	z.append(z2)
+	a2 = sigmoid(z2)
+	a2 = addBias(a2)
+	a.append(a2)
+	z3 = computeZ(aI.layers[1], a2)
+	z.append(z3)
+	a3 = sigmoid(z3)
+	a.append(a3)
+	print "------- costs -------"
+	print costLog(y, a3)
+	# print costMeanSquared(y, a3)
+	delta3log = a3 - y
+	delta3squared = (a3 - y) * sigGradient(z3)
+	print "------- deltas3s -------"
+	print delta3log, delta3log.shape
+	# print ''
+	# print delta3squared
+	w = aI.getWeights()
+	print "----- regularization -----"
+	print reg(w, 1)
+	print "------- delta2s --------"
+	print "weight dims - " + str(w[0].shape), str(w[1].shape)
+	wNoBias = np.delete(w[1], 0, axis=1)
+	delta2log = np.dot(wNoBias.transpose(), delta3log) * sigGradient(z2)
+	delta2squared = np.dot(wNoBias.transpose(), delta3squared) * sigGradient(z2)
+	print delta2log, delta2log.shape
+	# print ""
+	# print delta2squared
+	w2Gradlog = delta3log * a2.transpose() 
+	w2GradSquared = delta3squared * a2.transpose()
+	print"-------- gradients weights 2 --------"
+	print w2Gradlog, w2Gradlog.shape
+	# print w2GradSquared
+	print "------- gradient weights 1 --------"
+	w1Gradlog = delta2log * a1.transpose()
+	w1GradSquared = delta2squared * a1.transpose()
+	print w1Gradlog, w1Gradlog.shape
+	# print w1GradSquared 
+	print "--------- weights ----------"
+	print w[0]
+	print ""
+	print w[1]
+	print "--------- added gradient ---------"
+	w1 = w[0] + w1Gradlog
+	w2 = w[1] + w2Gradlog
+	print w1
+	print ""
+	print w2
+
+
+	# print sigmoid(a)
+	# print 1 - sigmoid(a)
+	# grad = sigGradient(z)
+	# delta3 = y - a # * a2
+	# delta2 = delta3 * sigGradient(z2) # a1
+
+
+if __name__ == '__main__':
+	main()
+
